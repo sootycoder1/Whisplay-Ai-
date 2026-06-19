@@ -1,0 +1,249 @@
+# ==========================================
+# WHISPLAY INTELLIGENCE LAYER — STAGE 60
+# conversation_engine.py
+# ==========================================
+
+import random
+import time
+
+
+# ==========================================
+# MEMORY STATE
+# LIGHTWEIGHT CONTEXT
+# ==========================================
+
+class ConversationState:
+
+    def __init__(self):
+
+        self.last_user_text = ""
+
+        self.last_intent = None
+
+        self.mood = "neutral"
+
+        self.energy = 1.0
+
+        self.history = []
+
+
+    def update(self, text, intent):
+
+        self.last_user_text = text
+
+        self.last_intent = intent
+
+        self.history.append(text)
+
+        # keep memory small (Pi safe)
+
+        if len(self.history) > 10:
+
+            self.history.pop(0)
+
+
+state = ConversationState()
+
+
+# ==========================================
+# INTENT ENGINE
+# ==========================================
+
+def detect_intent(text):
+
+    text = text.lower()
+
+
+    # --------------------------------------
+    # COMMANDS
+    # --------------------------------------
+
+    if "shutdown" in text:
+        return "shutdown"
+
+    if "restart" in text:
+        return "restart"
+
+
+    # --------------------------------------
+    # QUESTION DETECTION
+    # --------------------------------------
+
+    if text.startswith((
+        "what",
+        "why",
+        "how",
+        "when",
+        "where",
+    )):
+        return "question"
+
+
+    # --------------------------------------
+    # EMOTIONAL DETECTION
+    # --------------------------------------
+
+    if any(
+
+        word in text
+
+        for word in [
+            "tired",
+            "sad",
+            "angry",
+            "frustrated",
+        ]
+    ):
+        return "emotional"
+
+
+    # --------------------------------------
+    # SHORT / UNCLEAR
+    # --------------------------------------
+
+    if len(text.split()) < 3:
+        return "unclear"
+
+
+    # --------------------------------------
+    # DEFAULT
+    # --------------------------------------
+
+    return "conversation"
+
+
+# ==========================================
+# CONTEXT ENGINE
+# ==========================================
+
+def update_context(text):
+
+    intent = detect_intent(text)
+
+    state.update(text, intent)
+
+
+    # --------------------------------------
+    # MOOD TRACKING
+    # --------------------------------------
+
+    if intent == "emotional":
+
+        state.mood = "supportive"
+
+    elif intent == "question":
+
+        state.mood = "focused"
+
+    else:
+
+        state.mood = "neutral"
+
+
+    return intent
+
+
+# ==========================================
+# DECISION ENGINE
+# ==========================================
+
+def decide_action(intent, text):
+
+    """
+    Decide WHAT to do,
+    not WHAT to say
+    """
+
+    if intent in [
+        "shutdown",
+        "restart",
+    ]:
+        return "command"
+
+    if intent == "unclear":
+        return "clarify"
+
+    if intent == "emotional":
+        return "comfort"
+
+    if intent == "question":
+        return "answer"
+
+    return "respond"
+
+
+# ==========================================
+# RESPONSE STRATEGY
+# ==========================================
+
+def build_strategy(action):
+
+    """
+    HOW we respond
+    """
+
+    strategy = {
+
+        "tone": "neutral",
+
+        "length": "medium",
+
+        "style": "clean",
+    }
+
+
+    if action == "comfort":
+
+        strategy["tone"] = "warm"
+
+        strategy["length"] = "long"
+
+
+    elif action == "clarify":
+
+        strategy["tone"] = "curious"
+
+        strategy["length"] = "short"
+
+
+    elif action == "answer":
+
+        strategy["tone"] = "focused"
+
+        strategy["style"] = "clear"
+
+
+    elif action == "respond":
+
+        strategy["tone"] = "casual"
+
+
+    return strategy
+
+
+# ==========================================
+# MAIN ENTRY POINT
+# ==========================================
+
+def process(text):
+
+    """
+    MASTER INTELLIGENCE ENTRY
+    """
+
+    intent = update_context(text)
+
+    action = decide_action(intent, text)
+
+    strategy = build_strategy(action)
+
+    return {
+
+        "intent": intent,
+
+        "action": action,
+
+        "strategy": strategy,
+
+        "text": text,
+    }

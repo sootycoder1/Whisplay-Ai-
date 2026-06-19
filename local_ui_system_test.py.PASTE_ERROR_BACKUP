@@ -1,0 +1,229 @@
+# =========================
+# WHISPLAY LOCAL UI SYSTEM TEST
+# Brain + cognitive bridge + UI/display import test
+# Safe test: does not launch full controller
+# =========================
+
+import traceback
+import time
+
+
+TESTS = [
+    "hello",
+    "screen has no pixels",
+    "audio is working",
+    "runtime controller",
+]
+
+
+def section(name):
+    print("\n" + "=" * 55)
+    print(name)
+    print("=" * 55)
+
+
+def safe_import(module_name):
+    try:
+        module = __import__(module_name)
+        print(f"[OK] import {module_name}")
+        return module
+    except Exception as e:
+        print(f"[FAIL] import {module_name}: {e}")
+        traceback.print_exc()
+        return None
+
+
+def safe_call(label, fn, *args, **kwargs):
+    try:
+        result = fn(*args, **kwargs)
+        print(f"[OK] {label}")
+        return result
+    except Exception as e:
+        print(f"[FAIL] {label}: {e}")
+        traceback.print_exc()
+        return None
+
+
+def test_brain_bridge():
+    section("COGNITIVE BRIDGE")
+
+    try:
+        from cognitive_core import process
+
+        for text in TESTS:
+            result = process(text)
+            print("\nUSER:", text)
+            print("RESULT:", result)
+
+        print("\n[OK] cognitive_core.process")
+        return True
+
+    except Exception as e:
+        print("[FAIL] cognitive_core.process:", e)
+        traceback.print_exc()
+        return False
+
+
+def test_active_brain():
+    section("ACTIVE BRAIN")
+
+    try:
+        from brain.brain_cognitive_STAGE150_MERGED import think, process, status
+
+        print("think:", think("screen has no pixels"))
+        print("process:", process("audio is working"))
+        print("status:", status())
+
+        print("\n[OK] brain_cognitive_STAGE150_MERGED")
+        return True
+
+    except Exception as e:
+        print("[FAIL] active brain:", e)
+        traceback.print_exc()
+        return False
+
+
+def test_plus_brain():
+    section("PLUS BRAIN")
+
+    try:
+        from brain.brain_cognitive_STAGE150_PLUS import think, process, status
+
+        print("think:", think("runtime controller"))
+        print("process:", process("state core"))
+        print("status:", status())
+
+        print("\n[OK] brain_cognitive_STAGE150_PLUS")
+        return True
+
+    except Exception as e:
+        print("[SKIP/FAIL] PLUS brain:", e)
+        traceback.print_exc()
+        return False
+
+
+def test_display_ui():
+    section("DISPLAY UI")
+
+    ui = safe_import("display_ui")
+
+    if ui is None:
+        return False
+
+    print("[INFO] display_ui loaded")
+
+    # Only call functions if they exist.
+    # This avoids guessing your exact UI API.
+    candidates = [
+        ("set_idle", ("Local UI test: idle",)),
+        ("set_thinking", ("Local UI test: thinking",)),
+        ("set_speaking", ("Local UI test: speaking",)),
+        ("set_error", ("Local UI test: error check",)),
+    ]
+
+    any_called = False
+
+    for name, args in candidates:
+        fn = getattr(ui, name, None)
+
+        if callable(fn):
+            safe_call(f"display_ui.{name}", fn, *args)
+            any_called = True
+            time.sleep(0.4)
+        else:
+            print(f"[SKIP] display_ui.{name} not found")
+
+    if not any_called:
+        print("[WARN] display_ui imported, but no known UI functions found")
+
+    return True
+
+
+def test_display_orchestrator():
+    section("DISPLAY ORCHESTRATOR")
+
+    mod = safe_import("display_orchestrator_STAGE9500")
+
+    if mod is None:
+        return False
+
+    print("[INFO] display_orchestrator_STAGE9500 loaded")
+
+    # Try safe status-style functions first.
+    for name in ["status", "snapshot", "health", "test", "self_test"]:
+        fn = getattr(mod, name, None)
+
+        if callable(fn):
+            safe_call(f"display_orchestrator_STAGE9500.{name}", fn)
+            return True
+
+    print("[OK] display_orchestrator imported; no safe status/test function found")
+    return True
+
+
+def test_support_imports():
+    section("SUPPORT IMPORTS")
+
+    modules = [
+        "runtime_contract_STAGE6000",
+        "runtime_bus_STAGE7000",
+        "context_manager_STAGE6500",
+        "memory_engine_STAGE7500",
+        "goal_engine_STAGE8000",
+        "reasoning_engine_STAGE8500",
+        "analysis_core_STAGE11500",
+        "persistent_speech_worker_STAGE10500",
+    ]
+
+    ok = True
+
+    for name in modules:
+        if safe_import(name) is None:
+            ok = False
+
+    return ok
+
+
+if __name__ == "__main__":
+    section("WHISPLAY LOCAL UI SYSTEM TEST")
+
+    results = {
+        "support_imports": test_support_imports(),
+        "cognitive_bridge": test_brain_bridge(),
+        "active_brain": test_active_brain(),
+        "plus_brain": test_plus_brain(),
+        "display_ui": test_display_ui(),
+        "display_orchestrator": test_display_orchestrator(),
+    }
+
+    section("SUMMARY")
+
+    for name, passed in results.items():
+        print(f"{name}: {'OK' if passed else 'FAIL'}")
+
+    if all(results.values()):
+        print("\nLOCAL UI SYSTEM TEST: PASS")
+    else:
+        print("\nLOCAL UI SYSTEM TEST: CHECK FAILURES ABOVE")python - <<'EOF'
+print("LOCAL UI QUICK TEST")
+
+try:
+    import display_ui
+    print("[OK] display_ui import")
+except Exception as e:
+    print("[FAIL] display_ui import:", e)
+
+try:
+    import display_orchestrator_STAGE9500
+    print("[OK] display_orchestrator import")
+except Exception as e:
+    print("[FAIL] display_orchestrator import:", e)
+
+try:
+    from cognitive_core import process
+    print("[OK] cognitive_core:", process("screen has no pixels"))
+except Exception as e:
+    print("[FAIL] cognitive_core:", e)
+
+print("DONE")
+EOF

@@ -1,0 +1,32 @@
+# Extra cleanup
+*.txt
+*.sh
+ACTIVE/
+LOCKED/
+dev/
+runtime/
+log.txt# Python
+__pycache__/
+*.pyc
+
+# Virtual env
+venv/
+
+# Large / models
+models/
+piper/
+
+# Logs / temp
+*.log
+*.wav
+*.tar.gz
+
+# Backups / junk
+*.save
+*.BROKEN*
+*.BEFORE_*
+BACKUPS/
+_TIDY_HOLD/
+
+# Dev / misc
+.vscode/
