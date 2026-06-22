@@ -15,7 +15,6 @@ ENGINE_NAME = "system_controller"
 ENGINE_STAGE = 12000
 ENGINE_VERSION = "12.0.0"
 
-
 # ============================================================
 # DEBUG SAFE
 # ============================================================
@@ -128,7 +127,6 @@ except Exception:
                 return self.current
 
         state = DummyState()
-
 
 # ============================================================
 # SAFE BRAIN ENGINE
@@ -286,12 +284,6 @@ def emit_event(event_name, payload=None, priority=None):
         remember("errors", str(e))
         return False
 
-
-# ============================================================
-# CONTROLLER
-# ============================================================
-
-
 # =========================
 # AUTONOMY200 BRIDGE START
 # Read-only observer bridge.
@@ -308,7 +300,6 @@ try:
 except Exception as _autonomy200_error:
     _autonomy200 = None
     print("[AUTONOMY200] bridge unavailable:", _autonomy200_error)
-
 
 def autonomy200_observe(kind, value=""):
     """Send safe read-only observations to Stage 200. Never executes actions."""
@@ -333,9 +324,6 @@ def autonomy200_observe(kind, value=""):
     except Exception as e:
         print("[AUTONOMY200] observe failed:", e)
         return None
-
-
-
 
 def autonomy200_status():
     """Return Stage 200 status read-only. Never executes actions."""
@@ -384,12 +372,10 @@ def stage200_core_status():
 
     return out
 
-
-
 class SystemController:
 
     def __init__(self):
-        self.cooldown = 0.35
+        self.cooldown = 0.02
         self.max_history = 20
         self.safe_mode = False
 
@@ -494,22 +480,78 @@ class SystemController:
 
         log(f"[SYS12000] recovery triggered: {reason}")
 
-        time.sleep(0.5)
+    # --------------------------------------------------------
+    # 1. CLASSIFY ERROR TYPE
+    # --------------------------------------------------------
+    error_text = str(STATE.get("last_error", "")).lower()
 
-        STATE["recovering"] = False
-        STATE["runtime_state"] = RuntimeState.IDLE
+    if "mic" in error_text or "audio" in error_text:
+        recovery_type = "audio"
+    elif "display" in error_text:
+        recovery_type = "display"
+    elif "brain" in error_text:
+        recovery_type = "brain"
+    elif "bus" in error_text or "event" in error_text:
+        recovery_type = "runtime"
+    else:
+        recovery_type = "general"
+
+    log(f"[RECOVERY] type: {recovery_type}")
+
+    # --------------------------------------------------------
+    # 2. TARGETED RESPONSE
+    # --------------------------------------------------------
+
+    try:
+        if recovery_type == "audio":
+            log("[RECOVERY] resetting audio state")
+            try:
+                stop()
+            except:
+                pass
+
+        elif recovery_type == "display":
+            log("[RECOVERY] display issue - skipping frame")
+            # do nothing, avoid crash loop
+
+        elif recovery_type == "brain":
+            log("[RECOVERY] brain fallback engaged")
+            STATE["last_response"] = "System stabilising."
+
+        elif recovery_type == "runtime":
+            log("[RECOVERY] restarting runtime bus")
+            try:
+                if runtime_bus:
+                    runtime_bus.stop()
+                    runtime_bus.start()
+            except Exception as e:
+                log(f"[RECOVERY] bus restart failed: {e}")
+
+    except Exception as e:
+        log(f"[RECOVERY ERROR] {e}")
+
+    # --------------------------------------------------------
+    # 3. STABILISE SYSTEM
+    # --------------------------------------------------------
+
+    # reset volatile state
+    STATE["recovering"] = False
+    STATE["runtime_state"] = RuntimeState.IDLE
+
+    # prevent runaway loops
+    time.sleep(0.01)
+
+    log("[SYS12000] recovery complete")
 
     # ========================================================
     # INPUT
     # ========================================================
 
     def get_input(self):
-        """
-        Dual-mode input (battery-friendly):
-        - Typed input always works
-        - Push-to-talk: type m/mic/ptt to listen once
-        - Hands-free (blank Enter): listen once but require wake aliases
-        """
+        #Dual-mode input (battery-friendly):
+        #- Typed input always works
+        #- Push-to-talk: type m/mic/ptt to listen once
+        #- Hands-free (blank Enter): listen once but require wake aliases  
         WAKE_ALIASES = [
             "whisplay",
             "whis play",
@@ -731,6 +773,9 @@ class SystemController:
                     self.output(command)
                     continue
 
+                # ----------------------------
+                # THINK / BRAIN EXECUTION
+                # ----------------------------
                 state.set(RuntimeState.THINKING)
 
                 response = self.execute_brain(text)
@@ -738,16 +783,24 @@ class SystemController:
                 if not response:
                     response = "No response generated."
 
+                # ----------------------------
+                # OUTPUT
+                # ----------------------------
                 state.set(RuntimeState.SPEAKING)
-
                 self.output(response)
 
+                # ----------------------------
+                # MEMORY / STATE UPDATE
+                # ----------------------------
                 self.remember_turn(text, response)
 
                 STATE["last_response"] = response
                 STATE["turns"] += 1
 
-                time.sleep(self.cooldown)
+                # ----------------------------
+                # FAST LOOP CONTROL
+                # ----------------------------
+                time.sleep(0.01)
 
                 state.set(RuntimeState.IDLE)
 
@@ -787,7 +840,6 @@ class SystemController:
 
         log("[SYS12000] runtime offline")
 
-
 # ============================================================
 # SNAPSHOT
 # ============================================================
@@ -802,10 +854,8 @@ def snapshot():
         "systems": list(SYSTEMS.keys()),
     }
 
-
 def status():
     return snapshot()
-
 
 # ============================================================
 # BOOT

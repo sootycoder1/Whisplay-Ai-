@@ -1,0 +1,70 @@
+# GPIO Map — Whisplay System
+
+---
+
+## GPIO (Control Layer)
+
+GPIO is **intentionally restricted** and does not participate in runtime execution.
+
+---
+
+### Current State
+
+* Edge Detection: **DISABLED**
+* Interrupts: **BLOCKED**
+* Hardware Input: **INACTIVE**
+
+---
+
+### Input Method
+
+* Primary Input:
+  → Keyboard (PTT trigger: `m`)
+
+* No GPIO-based triggering is active
+
+---
+
+## Ownership & Access Rules (Stage 200)
+
+* Controller → **No direct GPIO control**
+* Brain (Cognitive Layer) → **No hardware access**
+* Autonomy → **Read-only (no actuation)**
+* GPIO → **No execution authority**
+
+---
+
+## Execution Constraints
+
+* GPIO must not:
+
+  * trigger system execution
+  * initiate runtime cycles
+  * influence decision-making
+
+* All execution must flow through:
+  → **controller → runtime pipeline**
+
+---
+
+## System Behavior Summary
+
+* GPIO is **disabled for execution**
+* No pins are actively used
+* System operates in:
+  → **controlled manual input mode**
+
+---
+
+## Stability Notes
+
+* GPIO edge detection caused instability and was disabled
+* System transitioned to a controlled input model
+* Hardware-triggered execution was removed
+
+---
+
+## Final Rule
+
+> GPIO must not influence system execution unless explicitly re-enabled under controlled conditions.
+o

@@ -1,0 +1,199 @@
+# Whisplay System Architecture
+
+## Runtime System (Clarity)
+
+The runtime operates as a closed-loop processing system:
+
+state → events → modes → debug → memory → safety → strategy → reasoning → adapter → analysis → state
+
+### Runtime Components
+
+1. state_core.py
+   → Maintains and updates the system state
+
+2. runtime_bus_STAGE7000.py
+   → Handles event communication and distribution
+
+3. system_controller (state handling)
+   → Manages modes and execution flow
+
+4. debug / logging layer
+   → Observability and runtime tracing
+
+5. memory_engine_STAGE7500.py
+   → Handles memory storage and retrieval
+
+6. runtime_contract_STAGE6000.py
+   → Enforces system rules and safety constraints
+
+7. goal_engine_STAGE8000.py
+   → Defines intent and strategic direction
+
+8. adapter_manager_STAGE9000.py
+   → Routes data between subsystems
+
+9. analysis_core_STAGE11500.py
+   → Final processing and output validation
+
+---
+
+## HEX Map (System Architecture Order)
+
+CORE
+INPUT
+MEMORY
+INTENT
+STRATEGY
+SAFETY
+RESPONSE
+PERSONALITY
+DISPLAY
+AUDIO
+TOOLS
+ACTIONS
+AUTONOMY
+DEBUG
+RECOVERY
+SYSTEM LOCK
+
+---
+
+## Architectural Rules
+
+* Display owns rendering only
+* Intelligence owns reasoning only
+* State owns runtime state only
+* Controller owns orchestration only
+* Autonomy (Stage 200) is read-only
+
+---
+
+## System Definition
+
+This system is a structured, layered architecture designed for:
+
+* stability
+* scaling
+* fault isolation
+* controlled autonomy
+* continuous runtime execution
+
+The system operates as a closed-loop runtime engine with strict separation of concerns across all layers.
+
+
+-------
+
+# GPIO Pin Map — Whisplay System
+
+---
+
+## Overview
+
+GPIO is present but **not active in runtime execution**.
+All GPIO-triggered behavior has been disabled due to instability.
+
+---
+
+## GPIO Configuration
+
+* Mode: `GPIO.BCM` *(standard, not actively used)*
+* Library: `RPi.GPIO`
+* Initialization: Exists in legacy/controller paths only
+
+---
+
+## Pin Usage
+
+| Pin (BCM) | Direction | Purpose        | Status   |
+| --------- | --------- | -------------- | -------- |
+| —         | —         | No active pins | DISABLED |
+
+---
+
+## Active Behavior
+
+* No `GPIO.setup(...)` calls participate in runtime logic
+* No `GPIO.input(...)` or `GPIO.output(...)` affects execution
+* No GPIO pin influences system state
+
+---
+
+## Disabled Features
+
+* `GPIO.add_event_detect()` → **BLOCKED / OVERRIDDEN**
+* Edge detection → **DISABLED**
+* Interrupts → **BLOCKED**
+* Hardware-triggered execution → **REMOVED**
+
+---
+
+## Input System
+
+* Hardware input: **NOT USED**
+* Active input method:
+  → Keyboard (PTT trigger: `m`)
+
+---
+
+## Ownership & Control Boundary (CRITICAL)
+
+* GPIO has **no owning subsystem in runtime**
+* Controller → **cannot access GPIO**
+* Brain → **cannot access GPIO**
+* Autonomy → **cannot control GPIO**
+* Runtime pipeline → **does not depend on GPIO**
+
+👉 GPIO exists **outside the execution domain**
+
+---
+
+## Execution Constraints
+
+GPIO must not:
+
+* trigger execution
+* initiate state changes
+* inject events into the runtime
+* influence decision-making
+
+All execution must flow through:
+
+→ **controller → runtime pipeline → output**
+
+---
+
+## System State
+
+GPIO is treated as:
+
+→ **non-operational**
+→ **isolated from execution**
+→ **logically disconnected**
+
+---
+
+## Historical Context
+
+* GPIO edge detection caused instability
+* System behavior became unpredictable
+* GPIO was disabled to restore deterministic execution
+
+---
+
+## Future Use (Controlled Reintroduction)
+
+GPIO may only be re-enabled if:
+
+* polling replaces interrupts
+* access is explicitly owned by a single module
+* execution cannot be triggered directly
+* stability is verified
+
+---
+
+## Final Rule
+
+> GPIO exists but has zero authority over system execution.
+
+> Any future GPIO use must be explicitly owned, isolated, and non-autonomous.
+
