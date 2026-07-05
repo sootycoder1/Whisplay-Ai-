@@ -5,6 +5,7 @@
 
 import os
 import sys
+import threading
 import time
 import traceback
 
@@ -133,7 +134,7 @@ except Exception:
 # ============================================================
 
 try:
-    from brain.brain_cognitive_STAGE150_MERGED import process as brain_process
+    from brain.brain_cognitive_STAGE220_COMBINED_CANDIDATE import process as brain_process
 except Exception as e:
     error(f"[BRAIN IMPORT ERROR] {e}")
 
@@ -393,6 +394,64 @@ class SystemController:
         log("[SYS12000] boot sequence started")
 
         try:
+            # ------------------------------------------------
+            # CONTRACT AUTHORITY GATE
+            # Contract must validate before bus/subsystems boot.
+            # ------------------------------------------------
+            import runtime_contract_STAGE6000 as contract
+
+            validation = contract.validate_contract()
+            authority = contract.stage200_contract_status()
+
+            if validation.get("ok") is not True:
+                raise RuntimeError(
+                    f"contract validation failed: "
+                    f"{validation.get('errors', [])}"
+                )
+
+            if authority.get("final_authority") != "user":
+                raise RuntimeError(
+                    "contract authority violation: user is not final authority"
+                )
+
+            if authority.get("autonomy_readonly") is not True:
+                raise RuntimeError(
+                    "contract authority violation: autonomy is not read-only"
+                )
+
+            if authority.get("autonomy_controls_hardware") is not False:
+                raise RuntimeError(
+                    "contract authority violation: autonomy hardware control enabled"
+                )
+
+            if authority.get("gpio_global_control") is not False:
+                raise RuntimeError(
+                    "contract authority violation: GPIO global control enabled"
+                )
+
+            if authority.get("spi_global_control") is not False:
+                raise RuntimeError(
+                    "contract authority violation: SPI global control enabled"
+                )
+
+            log(
+                "[SYS12000] contract authority verified: "
+                f"{validation.get('version')}"
+            )
+
+            try:
+                from mic_input_adapter import warm_model
+
+                threading.Thread(
+                    target=warm_model,
+                    name="vosk-model-warm",
+                    daemon=True,
+                ).start()
+
+                log("[SYS12000] microphone model warm-up started")
+            except Exception as e:
+                log(f"[SYS12000] microphone warm-up unavailable: {e}")
+
             if runtime_bus:
                 runtime_bus.start()
                 emit_event(Event.SYSTEM_BOOT, priority=EventPriority.HIGH.value)
@@ -583,7 +642,7 @@ class SystemController:
             # Mic listen path (blank Enter OR m/mic/ptt)
             try:
                 from mic_input_adapter import listen_once
-                heard = (listen_once(timeout_s=3.0) or "").strip()
+                heard = (listen_once(timeout_s=8.0) or "").strip()
 
                 if not heard:
                     print("[MIC] nothing heard")

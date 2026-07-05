@@ -1,5 +1,6 @@
 import json
 import queue
+import threading
 import time
 from array import array
 
@@ -18,7 +19,7 @@ DEVICE_INDEX = 0
 SAMPLE_RATE = 44100
 
 # WM8960 reports 2 input channels (capture stereo)
-CHANNELS = 1
+CHANNELS = 2
 
 # Stream blocksize
 BLOCKSIZE = 8000
@@ -31,12 +32,30 @@ RMS_GATE = 450
 # MODEL CACHE
 # =========================
 _model = None
+_model_lock = threading.Lock()
+
 
 def _get_model():
     global _model
-    if _model is None:
-        _model = Model(VOSK_MODEL_PATH)
+
+    if _model is not None:
+        return _model
+
+    with _model_lock:
+        if _model is None:
+            _model = Model(VOSK_MODEL_PATH)
+
     return _model
+
+
+def warm_model():
+    try:
+        _get_model()
+        print("[MIC] model warmed")
+        return True
+    except Exception as e:
+        print("[MIC WARM ERROR]", e)
+        return False
 
 
 # =========================
